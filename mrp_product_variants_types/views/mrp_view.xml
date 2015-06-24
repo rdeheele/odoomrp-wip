@@ -12,7 +12,23 @@
                     position="after">
                     <field name="attr_type" invisible="1" />
                     <field name="custom_value"
-                        attrs="{'readonly':[('attr_type','!=','range')]}" />
+                        attrs="{'readonly':[('attr_type','not in',['range','numeric'])]}" />
+                </xpath>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="mrp_production_product_line_extended_form_view">
+            <field name="name">mrp.production.product.line.extended.form</field>
+            <field name="model">mrp.production.product.line</field>
+            <field name="inherit_id"
+                ref="mrp_product_variants.mrp_production_product_line_extended_form_view" />
+            <field name="arch" type="xml">
+                <xpath
+                    expr="//field[@name='product_attributes']/tree//field[@name='value']"
+                    position="after">
+                    <field name="attr_type" invisible="1" />
+                    <field name="custom_value"
+                        attrs="{'readonly':[('attr_type','not in',['range','numeric'])]}" />
                 </xpath>
             </field>
         </record>
