@@ -29,11 +29,18 @@ class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
     def _get_product_attributes_inherit_dict(self, product_attribute_list):
+        print 'attribut du parent ', product_attribute_list
         product_attributes = self._get_product_attributes_dict()
+        print 'attribut de la bom line ', product_attributes
         for attr in product_attributes:
+            print 'attribut id ', attr['attribute']
             if self.env['product.attribute'].browse(
                     attr['attribute']).parent_inherited:
                 for attr_line in product_attribute_list:
+                    print 'attribut parent ', attr_line.attribute.id
                     if attr_line.attribute.id == attr['attribute']:
                         attr.update({'value': attr_line.value.id})
+                        if attr_line.custom_value:
+                            attr.update({'custom_value': attr_line.custom_value})
+                            attr['custom_value'] = attr_line.custom_value
         return product_attributes

@@ -196,6 +196,36 @@ class MrpBom(models.Model):
                             production.product_attributes))
                     product = self.env['product.product']._product_find(
                         bom_line_id.product_template, product_attributes)
+                    if bom_line_id.formula_text:
+                        attributes_dict = {}
+                        for attr in production.product_attributes:
+                            attributes_dict[attr.attribute.name] = attr.value.name
+                            if attr.custom_value:
+                                attributes_dict[attr.attribute.name] = attr.custom_value
+                        localdict = {
+                                'self': self,
+                                'a': attributes_dict,
+                        }
+                        try:
+                            exec bom_line_id.formula_text in localdict
+                        except KeyError:
+                            print 'boum'
+                            continue
+                        try:
+                            formula = localdict['result']
+                        except KeyError:
+                            print 'boum'
+                        print 'formula ', formula
+                        #{'longueur_coffre': 210.0}
+                        print 'product_attributes ', product_attributes
+                        for attr in product_attributes:
+                            attr_name = self.env['product.attribute'].browse(attr['attribute']).name
+                            for formula_attr in formula:
+                                if formula_attr == attr_name:
+                                    print 'bingo'
+                                    #attr.update({'value': attr_line.value.id})
+                                    attr.update({'custom_value': formula[formula_attr]})
+                                
                 else:
                     product = bom_line_id.product_id
                     product_attributes = (
