@@ -4,12 +4,14 @@
 ##############################################################################
 
 from openerp import models, fields, api, exceptions, _
+import openerp.addons.decimal_precision as dp
 
 
 class SaleOrderLineAttribute(models.Model):
     _inherit = 'mrp.production.attribute'
 
-    custom_value = fields.Float(string='Custom value')
+    custom_value = fields.Float(string='Custom value',
+                                digits=dp.get_precision('Product Attribute'))
     attr_type = fields.Selection(string='Type', store=False,
                                  related='attribute.attr_type')
 
