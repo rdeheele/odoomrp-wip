@@ -190,6 +190,7 @@ class MrpBom(models.Model):
             if (bom_line_id.type != "phantom" and
                     (not bom_id or self.browse(bom_id).type != "phantom")):
                 if not bom_line_id.product_id:
+                    print 'est-ce que le bom line a des attributs?'
                     product_attributes = (
                         bom_line_id.product_template.
                         _get_product_attributes_inherit_dict(
@@ -218,38 +219,62 @@ class MrpBom(models.Model):
                         print 'formula ', formula
                         #{'longueur_coffre': 210.0}
                         print 'product_attributes ', product_attributes
+                        pav_obj = self.env['product.attribute.value']
+                        if not product_attributes:
+                            quantity = formula['unite_mm']
                         for attr in product_attributes:
-                            attr_name = self.env['product.attribute'].browse(attr['attribute']).name
+                            attribute = self.env['product.attribute'].browse(attr['attribute'])
+                            print 'formula ', formula
                             for formula_attr in formula:
-                                if formula_attr == attr_name:
-                                    print 'bingo'
-                                    #attr.update({'value': attr_line.value.id})
-                                    attr.update({'custom_value': formula[formula_attr]})
-                                
+                                if formula_attr == attribute.name:
+                                    if formula_attr in ['longueur_tablier','quantite_lames']:
+                                        print 'formula_attr in longueur_tablier, quantite_lames'
+                                        pav_id = pav_obj.search([('name','=',str(int(formula[formula_attr]))),('attribute_id','=',attribute.id)])
+                                        if not pav_id:
+                                            pav_id = pav_obj.create({'name': int(formula[formula_attr]),
+                                                                     'attribute_id': attribute.id,
+                                                                     'attribute_code': int(formula[formula_attr])})
+                                        else:
+                                            pav_id = pav_id[0]
+                                        
+                                        attr.update({'value': pav_id.id})
+                                        continue
+                                    if len(attribute.value_ids) == 1:
+                                        attr.update({'value': attribute.value_ids[0].id})
+                                        attr.update({'custom_value': formula[formula_attr]})
+                                    else:
+                                        for value in attribute.value_ids:
+                                            if str(formula[formula_attr]) == value.name:
+                                                attr.update({'value': value.id})
+                        if 'unite_mm' in formula:
+                            print 'quantity unite_mm ', quantity
+                            quantity = float(formula['unite_mm']) * quantity
+                                    
                 else:
                     product = bom_line_id.product_id
                     product_attributes = (
                         bom_line_id.product_id.
                         _get_product_attributes_values_dict())
-                result.append({
-                    'name': (bom_line_id.product_id.name or
-                             bom_line_id.product_template.name),
-                    'product_id': product and product.id,
-                    'product_template': (
-                        bom_line_id.product_template.id or
-                        bom_line_id.product_id.product_tmpl_id.id),
-                    'product_qty': quantity,
-                    'product_uom': bom_line_id.product_uom.id,
-                    'product_uos_qty': (
-                        bom_line_id.product_uos and
-                        _factor((bom_line_id.product_uos_qty * factor),
-                                bom_line_id.product_efficiency,
-                                bom_line_id.product_rounding) or False),
-                    'product_uos': (bom_line_id.product_uos and
-                                    bom_line_id.product_uos.id or False),
-                    'product_attributes': map(lambda x: (0, 0, x),
-                                              product_attributes),
-                })
+                # 'product_id': product and product.id,
+                if quantity:
+                    result.append({
+                        'name': (bom_line_id.product_id.name or
+                                 bom_line_id.product_template.name),
+                        'product_template': (
+                            bom_line_id.product_template.id or
+                            bom_line_id.product_id.product_tmpl_id.id),
+                        'product_qty': quantity,
+                        'product_uom': bom_line_id.product_uom.id,
+                        'product_uos_qty': (
+                            bom_line_id.product_uos and
+                            _factor((bom_line_id.product_uos_qty * factor),
+                                    bom_line_id.product_efficiency,
+                                    bom_line_id.product_rounding) or False),
+                        'product_uos': (bom_line_id.product_uos and
+                                        bom_line_id.product_uos.id or False),
+                        'product_attributes': map(lambda x: (0, 0, x),
+                                                  product_attributes),
+                    })
             elif bom_id:
                 all_prod = [bom.product_tmpl_id.id] + (previous_products or [])
                 bom2 = self.browse(bom_id)
